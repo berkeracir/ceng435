@@ -1,7 +1,8 @@
 import socket
 import sys
+import datetime as dt
 
-SOCKET_SIZE = 5
+SOCKET_SIZE = 1024
 
 # Create a TCP/IP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,17 +23,8 @@ try:
         # Send data
         #sent = sock.sendto(message, broker_address)
         #print "\tSending:", message, "\n\t\tto (Broker):", broker_address, "(%i)" % sent
-        sock.sendall(message)
-        print "\tSending:", message, "\n\t\tto (Broker):", broker_address
-        
-        # Look for the response
-        """amount_received = 0
-        amount_expected = len(message)
-
-        while amount_received < amount_expected:
-            data = sock.recv(SOCKET_SIZE)
-            amount_received += len(data)
-            print "\nreceived:", data"""
+        sock.sendall(dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
+        print "\tSending:", message, "(%d)" % sys.getsizeof(message), "\n\t\tto (Broker):", broker_address, "\n"
 
 finally:
     sock.close()
