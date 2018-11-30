@@ -1,13 +1,10 @@
-
-
-
 import socket
 import sys
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-server_address = ('', 10001)
-client_address = ('', 10000)
+server_address = ('localhost', 10001)
+client_address = ('localhost', 10000)
 try:
     sock.bind(server_address)
 except:

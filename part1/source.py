@@ -1,24 +1,18 @@
 import socket
 import sys
 
-# Create a UDP socket
+# Create a UDP socket TODO: make it TCP!
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-server_address = ('', 10001)
+server_address = ('localhost', 10001)
 while True:
-    message = raw_input("Ask user for something.")
+    message = raw_input("Message: ")
 
     try:
-
         # Send data
-        print >>sys.stderr, 'sending "%s"' % message
         sent = sock.sendto(message, server_address)
-
-        # Receive response
-        print >>sys.stderr, 'waiting to receive'
-        data, server = sock.recvfrom(1024)
-        print >>sys.stderr, 'received "%s"' % data
+        print "\tSending:", message, "\n\t\tto:", server_address, "(%i)" % sent
 
     except:
-        print >>sys.stderr, 'closing socket'
         sock.close()
+        print "Closing the socket"
