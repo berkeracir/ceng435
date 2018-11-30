@@ -1,24 +1,38 @@
 import socket
 import sys
 
-# Create a UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+SOCKET_SIZE = 5
 
-server_address = ('', 10001)
-while True:
-    message = raw_input("Ask user for something.")
+# Create a TCP/IP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    try:
+broker_address = ('localhost', 10003)
+
+try:
+    sock.connect(broker_address)
+except:
+    print "Connection Error:", broker_address
+    sys.exit()
+
+try:
+
+    while True:
+        message = raw_input("Message: ")
 
         # Send data
-        print >>sys.stderr, 'sending "%s"' % message
-        sent = sock.sendto(message, server_address)
+        #sent = sock.sendto(message, broker_address)
+        #print "\tSending:", message, "\n\t\tto (Broker):", broker_address, "(%i)" % sent
+        sock.sendall(message)
+        print "\tSending:", message, "\n\t\tto (Broker):", broker_address
+        
+        # Look for the response
+        """amount_received = 0
+        amount_expected = len(message)
 
-        # Receive response
-        print >>sys.stderr, 'waiting to receive'
-        data, server = sock.recvfrom(1024)
-        print >>sys.stderr, 'received "%s"' % data
+        while amount_received < amount_expected:
+            data = sock.recv(SOCKET_SIZE)
+            amount_received += len(data)
+            print "\nreceived:", data"""
 
-    except:
-        print >>sys.stderr, 'closing socket'
-        sock.close()
+finally:
+    sock.close()
