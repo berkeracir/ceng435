@@ -22,7 +22,8 @@ def clientThread(data, address, time):
     while True:
         msg_time = dt.datetime.strptime(data, "%Y/%m/%d %H:%M:%S.%f")
         time_diff = time - msg_time
-        print "Received Message:", data, "\n\tfrom:", address, "\n\ttime diff:", time_diff.days*24*60*60*1000 + time_diff.seconds*1000 + time_diff.microseconds, "ms"
+        delay_in_ms = time_diff.days*24*60*60*1000 + time_diff.seconds*1000 + time_diff.microseconds/1000.0
+        print "Received Message:", data, "\n\tfrom:", address, "\n\ttime diff:", delay_in_ms, "ms"
         data, address = sock.recvfrom(SOCKET_SIZE)
         time = dt.datetime.now()
 
