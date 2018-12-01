@@ -73,7 +73,7 @@ while True:
 
     if data:
         thread.start_new_thread(clientThread, (data, address, ))
-        """
+"""
 
 if len(sys.argv) < 5:
     print "Expected Arguments:", sys.argv[0], "<DESTINATION1-IP>", "<DESTINATION1-PORT>", "<DESTINATION2-IP>", "<DESTINATION2-PORT>"
@@ -87,7 +87,7 @@ def clientThread(data, address, time):
     msg_time = dt.datetime.strptime(data.split('|')[1], "%Y/%m/%d %H:%M:%S.%f")
     time_diff = time - msg_time
     delay_in_ms = time_diff.days*24*60*60*1000 + time_diff.seconds*1000 + time_diff.microseconds/1000.0
-    print "Received Message:", data.split('|')[0], "\n\tfrom:", address, "\n\ttime diff:", delay_in_ms, "ms"
+    print "Received Message:", data.split('|')[0], "at:", time.strftime("%Y/%m/%d %H:%M:%S.%f"), "\n\tfrom:", address, "\n\ttime diff:", delay_in_ms, "ms"
     #time = dt.datetime.now()
 
 def serverThread(address):
@@ -102,9 +102,9 @@ def serverThread(address):
 
     while True:
         data, address = sock.recvfrom(SOCKET_SIZE)
+        time = dt.datetime.utcnow()
 
         if data:
-            time = dt.datetime.now()
             thread.start_new_thread(clientThread, (data, address, time, ))
 
 thread.start_new_thread(serverThread, (destination1_address, ))

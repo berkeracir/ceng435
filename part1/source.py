@@ -22,7 +22,7 @@ except:
 try:
     while True:
         message = raw_input("Message: ")
-        date_msg = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f")
+        date_msg = dt.datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")
 
         # Send data
         sock.sendall(message + "|" + date_msg)
