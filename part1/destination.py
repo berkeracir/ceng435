@@ -8,11 +8,15 @@ SOCKET_SIZE = 1024
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+if len(sys.argv) < 3:
+    print "Expected Arguments:", sys.argv[0], "<DESTINATION-IP>", "<DESTINATION-PORT>"
+    sys.exit()
+
 # Bind the socket to the port
-server_address = ('localhost', 10000)
+destination_address = (sys.argv[1], int(sys.argv[2]))
 
 try:
-    sock.bind(server_address)
+    sock.bind(destination_address)
 except:
     print "Socket Binding Exception"
     sys.exit()
