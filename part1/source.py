@@ -22,10 +22,11 @@ except:
 try:
     while True:
         message = raw_input("Message: ")
+        date_msg = dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f")
 
         # Send data
-        sock.sendall(dt.datetime.now().strftime("%Y/%m/%d %H:%M:%S.%f"))
-        print "\tSending:", message, "(%d)" % sys.getsizeof(message), "\n\t\tto (Broker):", broker_address, "\n"
+        sock.sendall(message + "|" + date_msg)
+        print "\tSending:", date_msg, "(%d)" % sys.getsizeof(date_msg), "\n\t\tto (Broker):", broker_address, "\n"
 
 finally:
     sock.close()

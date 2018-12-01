@@ -25,12 +25,15 @@ while True:
     try:
         while True:
             data = connection.recv(SOCKET_SIZE)
-
+            print "Message:", data, "\n\tfrom:", address
+            
             if data:
                 if randint(0,1):
                     udp_sock.sendto(data, router1_address)
+                    print "\tto:", router1_address
                 else:
                     udp_sock.sendto(data, router2_address)
+                    print "\tto:", router2_address
 
             else:
                 break

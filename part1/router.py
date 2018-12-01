@@ -19,4 +19,6 @@ except:
 
 while True:
     data, address = sock.recvfrom(SOCKET_SIZE)
+    print "Message:", data, "\n\tfrom:", address
     sent = sock.sendto(data, destination_address)
+    print "\tto:", destination_address

@@ -22,7 +22,7 @@ if [ -n "$USERNAME" ]; then
 			scp -i $SSH_KEY -P $B_PORT broker.py $USERNAME@$B:/users/$USERNAME
 			scp -i $SSH_KEY -P $R1_PORT router.py $USERNAME@$R1:/users/$USERNAME
 			scp -i $SSH_KEY -P $R2_PORT router.py $USERNAME@$R2:/users/$USERNAME
-			scp -i $SSH_KEY -P $D_PORT destionation.py $USERNAME@$D:/users/$USERNAME
+			scp -i $SSH_KEY -P $D_PORT destination.py $USERNAME@$D:/users/$USERNAME
 		else
 			echo "SSH Key with path: $2 does not exist!"
 		fi
