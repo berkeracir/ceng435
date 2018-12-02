@@ -26,7 +26,7 @@ try:
 
     for i in range(0,1000):
         #message = str(i)    # = raw_input("Message: ") //alternative
-        # Get the current time 
+        # Get the current time with microseconds
         date_msg = dt.datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")
         message = str(i) + "|" + date_msg
         #  Send data to broker
