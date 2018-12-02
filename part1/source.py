@@ -25,14 +25,15 @@ try:
     sock.connect(broker_address)
 
     for i in range(0,1000):
-        message = str(i)    # = raw_input("Message: ") //alternative
+        #message = str(i)    # = raw_input("Message: ") //alternative
         # Get the current time 
         date_msg = dt.datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")
+        message = str(i) + "|" + date_msg
         #  Send data to broker
-        sock.sendall(message + "|" + date_msg)
+        sock.sendall(message)
         print "\tSending:", message, "(%d)" % sys.getsizeof(message), "\n\t\tto (Broker):", broker_address, "\n"
 
-        sleep(0.03)
+        sleep(0.1)
 except:
     print "Connection Error:", broker_address
     sys.exit()
