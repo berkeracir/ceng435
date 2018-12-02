@@ -53,6 +53,6 @@ while True:
             else:
                 break
 
-    # After all done, close the connection and exit from script
+    # After all done, close the connection 
     finally:
         connection.close()
