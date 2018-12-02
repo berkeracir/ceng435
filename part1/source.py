@@ -1,6 +1,7 @@
 import socket
 import sys
 import datetime as dt
+from time import sleep
 
 SOCKET_SIZE = 1024
 
@@ -20,13 +21,17 @@ except:
     sys.exit()
 
 try:
-    while True:
-        message = raw_input("Message: ")
+    #while True:
+    for i in range(0,1000):
+        #message = raw_input("Message: ")
+        message = str(i)
         date_msg = dt.datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")
 
         # Send data
         sock.sendall(message + "|" + date_msg)
-        print "\tSending:", date_msg, "(%d)" % sys.getsizeof(date_msg), "\n\t\tto (Broker):", broker_address, "\n"
+        print "\tSending:", message, "(%d)" % sys.getsizeof(message), "\n\t\tto (Broker):", broker_address, "\n"
+
+        sleep(0.03)
 
 finally:
     sock.close()

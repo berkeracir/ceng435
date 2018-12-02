@@ -27,18 +27,18 @@ IF_R1D_2="10.10.3.2"
 IF_R2D_1="10.10.5.1"
 IF_R2D_2="10.10.5.2"
 
-TIME_SYNC="sudo sed -i 's/#NTP=/NTP=0.ro.pool.ntp.org 1.ro.pool.ntp.org/' /etc/systemd/timesyncd.conf; sudo sed -i 's/#FallbackNTP=/FallbackNTP=ntp.ubuntu.com 0.arch.pool.ntp.org/' /etc/systemd/timesyncd.conf; sudo timedatectl set-ntp true"
+TIME_SYNC="sudo ntpd -q 172.17.1.9"
 
 if [ -n "$USERNAME" ]; then
 	if [ -n "$SSH_KEY" ]; then
 		if [ -f "$SSH_KEY" ]; then
 			ssh-add $SSH_KEY
-            gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $B_PORT $USERNAME@$REMOTE \"$TIME_SYNC; echo 'BROKER'; python broker.py $IF_SB_2 $PORT $IF_BR1_2 $PORT $IF_BR2_2 $PORT; bash -l\""
-			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $R1_PORT $USERNAME@$REMOTE \"$TIME_SYNC; echo 'ROUTER1'; python router.py $IF_BR1_2 $PORT $IF_R1D_2 $PORT; bash -l\""
-			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $R2_PORT $USERNAME@$REMOTE \"$TIME_SYNC; echo 'ROUTER2'; python router.py $IF_BR2_2 $PORT $IF_R2D_2 $PORT; bash -l\""
-			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $D_PORT $USERNAME@$REMOTE \"$TIME_SYNC; echo 'DESTINATION'; python destination.py $IF_R1D_2 $PORT $IF_R2D_2 $PORT; bash -l\""
+            gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $B_PORT $USERNAME@$REMOTE \"echo 'BROKER'; python broker.py $IF_SB_2 $PORT $IF_BR1_2 $PORT $IF_BR2_2 $PORT; bash -l\""
+			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $R1_PORT $USERNAME@$REMOTE \"echo 'ROUTER1'; python router.py $IF_BR1_2 $PORT $IF_R1D_2 $PORT; bash -l\""
+			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $R2_PORT $USERNAME@$REMOTE \"echo 'ROUTER2'; python router.py $IF_BR2_2 $PORT $IF_R2D_2 $PORT; bash -l\""
+			gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $D_PORT $USERNAME@$REMOTE \"$TIME_SYNC; sleep 1; echo 'DESTINATION'; python destination.py $IF_R1D_2 $PORT $IF_R2D_2 $PORT; bash -l\""
 			sleep 5
-            gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $S_PORT $USERNAME@$REMOTE \"$TIME_SYNC; echo 'SOURCE'; python source.py $IF_SB_2 $PORT; bash -l\""
+            gnome-terminal -x bash -c "ssh -X -t -i $SSH_KEY -p $S_PORT $USERNAME@$REMOTE \"echo 'SOURCE'; python source.py $IF_SB_2 $PORT; bash -l\""
 # \"kill -9 $(netstat -ap | grep :51795 | cut -d'/' -s -f1 | rev | cut -d' ' -f1 | rev); echo 'BROKER'; python broker.py $IF_SB_2 $PORT $IF_BR1_2 $PORT $IF_BR2_2 $PORT\""
             #gnome-terminal -x bash -c "ssh -X -i $SSH_KEY -p $S_PORT $USERNAME@$REMOTE \"echo 'SOURCE'; python source.py $IF_SB_2 $PORT\""
 		else
