@@ -18,11 +18,7 @@ if [ -n "$USERNAME" ]; then
 	if [ -n "$SSH_KEY" ]; then
 		if [ -f "$SSH_KEY" ]; then
 			ssh-add $SSH_KEY
-			scp -i $SSH_KEY -P $S_PORT source.py $USERNAME@$S:/users/$USERNAME
-			scp -i $SSH_KEY -P $B_PORT broker.py $USERNAME@$B:/users/$USERNAME
-			scp -i $SSH_KEY -P $R1_PORT router.py $USERNAME@$R1:/users/$USERNAME
-			scp -i $SSH_KEY -P $R2_PORT router.py $USERNAME@$R2:/users/$USERNAME
-			scp -i $SSH_KEY -P $D_PORT destination.py $USERNAME@$D:/users/$USERNAME
+			scp -i $SSH_KEY -P $D_PORT $USERNAME@$D:/users/$USERNAME/*.txt  experiments/
 		else
 			echo "SSH Key with path: $2 does not exist!"
 		fi

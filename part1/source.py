@@ -1,38 +1,42 @@
 import socket
 import sys
+import datetime as dt
+from time import sleep
 
-SOCKET_SIZE = 5
+# Initilaze buffer size for socket
+SOCKET_SIZE = 1024
 
-# Create a TCP/IP socket
+# Create socket with TCP connection
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-broker_address = ('localhost', 10003)
+# Check whether we get expected arguments.If we do not get, exit from script
+# We need to get broker IP and port number
+# Note that we gave this arguments in our script which executes all nodes  
+if len(sys.argv) < 3:
+    print "Expected Arguments:", sys.argv[0], "<BROKER-IP>", "<BROKER-PORT>"
+    sys.exit()
 
+# Assign argv variables to broker address
+broker_address = (sys.argv[1], int(sys.argv[2]))
+
+# Try-except block for connection socket to broker address 
+# In case of exception, exit from script
 try:
     sock.connect(broker_address)
+
+    for i in range(0,1000):
+        #message = str(i)    # = raw_input("Message: ") //alternative
+        # Get the current time with microseconds
+        date_msg = dt.datetime.utcnow().strftime("%Y/%m/%d %H:%M:%S.%f")
+        message = str(i) + "|" + date_msg
+        #  Send data to broker
+        sock.sendall(message)
+        print "\tSending:", message, "(%d)" % sys.getsizeof(message), "\n\t\tto (Broker):", broker_address, "\n"
+
+        sleep(0.1)
 except:
     print "Connection Error:", broker_address
     sys.exit()
-
-try:
-
-    while True:
-        message = raw_input("Message: ")
-
-        # Send data
-        #sent = sock.sendto(message, broker_address)
-        #print "\tSending:", message, "\n\t\tto (Broker):", broker_address, "(%i)" % sent
-        sock.sendall(message)
-        print "\tSending:", message, "\n\t\tto (Broker):", broker_address
-        
-        # Look for the response
-        """amount_received = 0
-        amount_expected = len(message)
-
-        while amount_received < amount_expected:
-            data = sock.recv(SOCKET_SIZE)
-            amount_received += len(data)
-            print "\nreceived:", data"""
-
+# After all done close socket and exit from script
 finally:
     sock.close()
