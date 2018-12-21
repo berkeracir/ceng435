@@ -55,6 +55,8 @@ while True:
         expected_seqnum += 1
         if expected_seqnum == 10:
             expected_seqnum = 0
+    except KeyboardInterrupt:
+        raise
     except:
         print "exception"
         continue
