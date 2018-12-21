@@ -13,8 +13,9 @@ def calculate_checksum(message):
 # Extracts sequence number, ack data and checksum from a non-empty packet
 def extract_packet(packet):
     seq_num = ast.literal_eval(packet[0])  #convert to int
-    checksum = ast.literal_eval(packet[513:]) #convert to int
-    return seq_num, packet[1:513], checksum 
+    split = packet.find(' | ')
+    checksum = ast.literal_eval(packet[split + 3:]) #convert to int
+    return seq_num, packet[1:split], checksum 
 
  ###### ###### ###### ###### ######  helper functions END ###### ###### ###### ###### ###### ###### ###### 
 
@@ -26,7 +27,8 @@ sock.bind(server_address)
 corrupt = 0 ##if corrupt -> corrupt = 1
              ## corrupt also indicates whether we have correct seq_num or not
 expected_seqnum = 0
-
+i = 0
+a= open("serverdata.txt","w+")
 while True:
     try:
         #get packet
@@ -36,21 +38,23 @@ while True:
 
         #extrack packet
         seq_num, data, checksum = extract_packet(packet)
-        print seq_num
-
-        print checksum
+        a.write(data)
+        if i == 16:
+            a.write(str(data))      
+            print data
+ 
+        i+=1
         #Check the data (sequence number, checksum)
         if seq_num != expected_seqnum or checksum != calculate_checksum(data):
-            continue
-        
+            print "aasda"
+            continue      
         #make ack_packet and send back to client
         ack_packet = str(seq_num) + "acknowledgement"
-        expected_seqnum += 1
-        print "x"
         sent = sock.sendto(ack_packet, address)
-        print data
+
+        expected_seqnum += 1
         if expected_seqnum == 10:
             expected_seqnum = 0
     except:
-        print "x"
+        print "exception"
         continue
