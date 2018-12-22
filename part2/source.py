@@ -4,7 +4,7 @@ import time
 import ast
 
 PACKET_SIZE = 512
-ACK_PACKET_SIZE = 300
+ACK_PACKET_SIZE = 100
 
 class Timer(object):
     TIMER_STOP = -1
@@ -62,12 +62,14 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_address = ('localhost', 10000) ##localhost, portnumber
 sock.settimeout(0.5)
 
-timer = Timer(0.5) #implies that timeout is 0.5 sec
+timer = Timer(1) #implies that timeout is 0.5 sec
 expected_seqnum = 0
 seq_num = 0 # sequence number 0 to 9
 packets = []
-corrupt = 0 ##if corrupt -> corrupt = 1(checksum is true)
-            ## corrupt also indicates whether we have correct seq_num or not
+
+base = 0
+
+
 a = open("sourcedata.txt", "w+")
 
 try:
@@ -86,23 +88,22 @@ try:
 
             i+=1
             a.write(message)
-            print calculate_checksum(message)
-        num_packet = len(packets)   
-    
-        i = 0
-        
+
+        num_packet = len(packets)      
+        i = 0   
         while i < num_packet:
             #send message and start timer
             sent = sock.sendto(packets[i], server_address)
             timer.stop()  #stop timer if it is running
             timer.start() #start timer for packet
             corrupt = 0
+            print('packet number:'  +(packets[i][0]))
             #wait for response until timeout    
             while timer.timeout() != True:
                 try:
                     ack_data, server = sock.recvfrom(ACK_PACKET_SIZE) #receive data
                     #extract ack packet, first char is sequence number, 1 to 4(3 char) is 'ACK', 4 to end is checksum
-                    seq_num, ack_message = ast.literal_eval(ack_data[0]), ack_data[1:16] #ast.literal_eval -> convert to int
+                    seq_num, ack_message = int(ack_data[0]), ack_data[1:16] #ast.literal_eval -> convert to int
                     #check sequence number and checksum and timeout value                   
                     if (seq_num != expected_seqnum):
                         corrupt = 1
@@ -120,9 +121,10 @@ try:
 
             #if there is a timeout or packet is corrupt, send packet again
             if timer.running() == False and corrupt == 0:
-                i += 1         
+                i += 1   
+
+        sent = sock.sendto('0' + 'NULLMESSAGE' + ' | ' + '0', server_address)      
 finally:
     print >>sys.stderr, 'closing socket'
     sock.close()
-
 
