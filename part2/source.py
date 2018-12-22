@@ -1,11 +1,14 @@
 import socket
 import sys
 import time
-import ast
+import thread
 
 PACKET_SIZE = 512
 ACK_PACKET_SIZE = 100
+WINDOW_SIZE = 7
+base = 0
 
+#Timer class
 class Timer(object):
     TIMER_STOP = -1
     
@@ -41,8 +44,15 @@ class Timer(object):
         else:
             return -1
 
- ###### ###### ###### ###### ######  helper functions START ###### ###### ###### ###### ###### ###### ###### 
 
+ ###### ###### ###### ###### ######  helper functions START ###### ###### ###### ###### ###### ###### ###### 
+#set window size, we need this because when we come to last packets,
+# we need to make window size smaller
+def set_window_size(num_packets):
+    global base
+    return min(WINDOW_SIZE, num_packets - base)
+
+#Calculates checksum
 def calculate_checksum(message):
     s = 0
     for i in range(0, len(message), 2):
@@ -50,27 +60,42 @@ def calculate_checksum(message):
         s = (s + w & 0xffff) + (s + w >> 16)
     return ~s & 0xffff
 
+#Prepare packet which is -> sequence number|||data | checksum
 def make_packet(seq_num, data, checksum):
     seq_bytes = str(seq_num)
     checksum_bytes = str(checksum)
-    return seq_bytes + data + ' | ' + checksum_bytes
+    return seq_bytes + '|||' + data + ' | ' + checksum_bytes
+
+#receive ack packets and update base according to that
+def receive(sock):
+    global mutex
+    global base
+    global timer
+
+    while True:
+        ack_data, server = sock.recvfrom(ACK_PACKET_SIZE)
+        seq_num, ack_message = int(ack_data[0]), ack_data[1:16]
+        # If we get an ACK for the first in-flight packet
+        if (seq_num >= base):
+            mutex.acquire()
+            base = seq_num + 1
+            print('Base updated', base)
+            timer.stop()
+            mutex.release()
 
  ###### ###### ###### ###### ###### ###### helper functions END ###### ###### ###### ###### ###### ###### 
+
 
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_address = ('localhost', 10000) ##localhost, portnumber
-sock.settimeout(0.5)
 
-timer = Timer(1) #implies that timeout is 0.5 sec
-expected_seqnum = 0
+
+timer = Timer(1) #implies that timeout is 1 sec
 seq_num = 0 # sequence number 0 to 9
-packets = []
-
-base = 0
-
-
-a = open("sourcedata.txt", "w+")
+packets = [] #list of all packets, because before sending any data,
+#first thing that we are going to do is packetizing
+mutex = thread.allocate_lock()
 
 try:
     # Open file
@@ -78,51 +103,52 @@ try:
         #packetize the data till to the end
         i=0
         while True:
+            #read PACKET_SIZE byte data from file
             message = f.read(PACKET_SIZE) 
             if not message:
                 break
+            #add to packets list with sequence number and checksum
             packets.append(make_packet(seq_num, message, calculate_checksum(message)))
             seq_num += 1
-            if seq_num == 10:
-                seq_num = 0
 
-            i+=1
-            a.write(message)
+        next_to_send = 0 #next packet's sequence number that we are going to send
+        num_packets = len(packets)   
+        window_size = set_window_size(num_packets) #set window size
+        thread.start_new_thread(receive, (sock, ))   #start receiver function, we use it to get ack messages 
+        while base < num_packets:
+            mutex.acquire()#lock
+            #there are packet that we can send, send till end of window
+            while next_to_send < base + window_size:
+                sent = sock.sendto(packets[i], server_address)
+                next_to_send += 1
+                split1 = packets[i].find('|||') #for debug 
+                split2 = packets[i].find(' | ') #for debug 
+                print 'seq: ' + str(packets[i][:split1]) #for debug 
+                print 'checksum' + str(packets[i][split2 +3:]) #for debug
 
-        num_packet = len(packets)      
-        i = 0   
-        while i < num_packet:
-            #send message and start timer
-            sent = sock.sendto(packets[i], server_address)
-            timer.stop()  #stop timer if it is running
-            timer.start() #start timer for packet
-            corrupt = 0
-            print('packet number:'  +(packets[i][0]))
-            #wait for response until timeout    
-            while timer.timeout() != True:
-                try:
-                    ack_data, server = sock.recvfrom(ACK_PACKET_SIZE) #receive data
-                    #extract ack packet, first char is sequence number, 1 to 4(3 char) is 'ACK', 4 to end is checksum
-                    seq_num, ack_message = int(ack_data[0]), ack_data[1:16] #ast.literal_eval -> convert to int
-                    #check sequence number and checksum and timeout value                   
-                    if (seq_num != expected_seqnum):
-                        corrupt = 1
-                        break
-                    
-                    #get rtt and stop timer, we can send next packet
-                    rtt = timer.get_rtt()
-                    timer.stop()
+            #start timer if is not running
+            if not timer.running():
+                print 'start timer'#for debug 
+                timer.start()
+           
+           #if timer is running and not timeout, stop this loop for 0.05 sec, let receive function run.
+           #Get ack messages from there
+            while timer.running() and not timer.timeout():
+                mutex.release()
+                time.sleep(0.05) #let receive function run for this 0.05 sec
+                mutex.acquire()
+            
+            #we fucked up, send all message again
+            if timer.timeout():
+                print 'stop timer and set base to beginning'#for debug 
+                timer.stop()
+                next_to_send = base           
+            else:
+                window_size = set_window_size(num_packets) # set new window size.NOTE It does not change until last packets
+            
+            mutex.release() #release
 
-                    expected_seqnum += 1
-                    if expected_seqnum == 10:
-                        expected_seqnum = 0
-                except:
-                    continue  
-
-            #if there is a timeout or packet is corrupt, send packet again
-            if timer.running() == False and corrupt == 0:
-                i += 1   
-
+        # send null message to close server, with that null message we indicate that we send all packets
         sent = sock.sendto('0' + 'NULLMESSAGE' + ' | ' + '0', server_address)      
 finally:
     print >>sys.stderr, 'closing socket'

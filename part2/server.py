@@ -13,10 +13,11 @@ def calculate_checksum(message):
 
 # Extracts sequence number, ack data and checksum from a non-empty packet
 def extract_packet(packet):
-    seq_num = int(packet[0])  #convert to int
-    split = packet.find(' | ')
-    checksum = int(packet[split + 3:]) #convert to int
-    return seq_num, packet[1:split], checksum 
+    split1 = packet.find('|||')
+    seq_num = int(packet[:split1])  #convert to int
+    split2 = packet.find(' | ')
+    checksum = int(packet[split2 + 3:]) #convert to int
+    return seq_num, packet[split1 + 3:split2], checksum 
 
  ###### ###### ###### ###### ######  helper functions END ###### ###### ###### ###### ###### ###### ###### 
 
@@ -37,32 +38,27 @@ while True:
         if not packet:
             continue
 
-        #extrack packet
-        seq_num, data, checksum = extract_packet(packet)
-           
+        #extract packet
+        seq_num, data, checksum = extract_packet(packet)      
+        #it means we get null message, close server
         if checksum == 0 and seq_num == 0 and isinstance(checksum, int) :
             print "Client closed the socket"
             break
         #Check the data (sequence number, checksum)
-        if seq_num != expected_seqnum or checksum != calculate_checksum(data):
-            print "Unexpected seq number or data corrupt"
-            continue
-        
-        sleep(0.5)
-        #make ack_packet and send back to client
-        ack_packet = str(seq_num) + "acknowledgement"
-        sent = sock.sendto(ack_packet, address)
-        a.write(data)
+        if seq_num == expected_seqnum or checksum == calculate_checksum(data):
+            ack_packet = str(seq_num) + 'acknowledgement'
+            sent = sock.sendto(ack_packet, address)
+            expected_seqnum += 1
+            a.write(data)
+        else: #we get unexpected sequence number, send previous ack
+            ack_packet = str(expected_seqnum -1) + 'acknowledgement'
+            sent = sock.sendto(ack_packet, address)
 
-        expected_seqnum += 1
-        if expected_seqnum == 10:
-            expected_seqnum = 0
-        i += 1
     except KeyboardInterrupt:
         raise
-
     except:
         print "exception"
         continue
 
+file.close()
 sock.close()
