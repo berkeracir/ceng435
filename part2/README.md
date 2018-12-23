@@ -4,6 +4,13 @@ This script is used to upload our scripts from local to remote hosts.
 `chmod +x update_nodes.sh`
 `./update_nodes.sh <GENI-Username> <Path-To-GENI-SSHKEY>`
 
+# remote_run_nodes.sh
+This script is used to run the uploaded scripts on remote hosts. It opens new
+gnome terminals separately. You are free on the remote host terminals after the
+execution of scripts.
+
+`chmod +x update_nodes.sh`
+`./update_nodes.sh <GENI-Username> <Path-To-GENI-SSHKEY>`
 
 # destination.py
 Script that runs on Destination. **Note that** it closes itself after 10 seconds
