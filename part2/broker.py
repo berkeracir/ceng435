@@ -30,7 +30,7 @@ def calculate_timeout(sample_rtt):
     global estimated_rtt
     global dev_rtt
 
-    alpha = 0.25
+    alpha = 0.125
     beta = 0.25
     estimated_rtt = (1-alpha)*estimated_rtt + alpha*sample_rtt
     dev_rtt = (1-beta)*dev_rtt + beta*abs(sample_rtt-estimated_rtt)
