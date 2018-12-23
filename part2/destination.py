@@ -1,6 +1,11 @@
 from socket import socket, AF_INET, SOCK_DGRAM, timeout
 import sys
 
+if len(sys.argv) < 2:
+    sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
+
+SOCKET_SIZE = 1024
+
 # Calculate IPv4 Checksum for given data
 def calculate_checksum(message):
     s = 0
@@ -27,44 +32,51 @@ DEST_IP = "localhost"
 DEST_PORT = 10001
 DEST = (DEST_IP, DEST_PORT)
 
-SOCKET_SIZE = 1024
-
 send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
 
-recv_sock.bind(DEST)
-
 exp_seq = 0
 
-while True:
-    # Received message must be in the format of seq|message|checksum
-    message, address = recv_sock.recvfrom(SOCKET_SIZE)
+try:
+    dest_timeout = 10
+    recv_sock.bind(DEST)
+    recv_sock.settimeout(dest_timeout)
 
-    # Try Except block is for detecting corrupted message delimiter('|')
-    try:
-        checksum = message.split('|')[-1]
-        data = "|".join(message.split('|')[:-1]) + "|"
-        ack_seq = data.split('|')[0]
-        content = "|".join(data.split('|')[1:-1])
-    except ValueError:
-        "Corrupted ACK Message"
-        # TODO send NACK in case of receiving corrupted message
-        continue
+    f = open(sys.argv[1], "w+")
 
-    #print message
+    while True:
+        # Received message must be in the format of seq|message|checksum
+        message, address = recv_sock.recvfrom(SOCKET_SIZE)
 
-    # Receiving message with expected sequence number equal to sequence number
-    if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
-        sys.stdout.write(content)
-        
-        ack_msg = ack_seq + "|"
-        msg_send = ack_msg + str(calculate_checksum(ack_msg))
-        send_sock.sendto(msg_send, BROKER)
-        exp_seq += 1
-    # Receiving message with expected sequence number greater than sequence number
-    # That means BROKER didn't received my previous ACK message
-    elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
-        ack_msg = ack_seq + "|"
-        msg_send = ack_msg + str(calculate_checksum(ack_msg))
-        send_sock.sendto(msg_send, BROKER)
-    # else: TODO send NACK in case of receiving corrupted message
+        # Try Except block is for detecting corrupted message delimiter('|')
+        try:
+            checksum = message.split('|')[-1]
+            data = "|".join(message.split('|')[:-1]) + "|"
+            ack_seq = data.split('|')[0]
+            content = "|".join(data.split('|')[1:-1])
+        except ValueError:
+            "Corrupted ACK Message"
+            # TODO send NACK in case of receiving corrupted message
+            continue
+
+        #print message
+
+        # Receiving message with expected sequence number equal to sequence number
+        if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
+            f.write(content)
+            
+            ack_msg = ack_seq + "|"
+            msg_send = ack_msg + str(calculate_checksum(ack_msg))
+            send_sock.sendto(msg_send, BROKER)
+            exp_seq += 1
+        # Receiving message with expected sequence number greater than sequence number
+        # That means BROKER didn't received my previous ACK message
+        elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
+            ack_msg = ack_seq + "|"
+            msg_send = ack_msg + str(calculate_checksum(ack_msg))
+            send_sock.sendto(msg_send, BROKER)
+        # else: TODO send NACK in case of receiving corrupted message
+except timeout:
+    f.close()
+    sys.stderr.write("%s is closed after waiting %d seconds.\n" % (sys.argv[0], dest_timeout))
+    sys.exit()

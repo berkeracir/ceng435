@@ -2,6 +2,9 @@ from socket import socket, AF_INET, SOCK_DGRAM, SOCK_STREAM, timeout
 from datetime import datetime
 import sys
 
+if len(sys.argv) < 2:
+    sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
+
 SOCKET_SIZE = 1024
 MAX_HEADER_SIZE = len("5000||65535")
 
@@ -101,6 +104,8 @@ try:
 
     connection, address = tcp_sock.accept()
 
+    f = open(sys.argv[1], "w+")
+
     seq = 0
     remainder = ""
 
@@ -109,8 +114,8 @@ try:
         data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
 
         if data:
-            sys.stdout.write(data)
-
+            f.write(data)
+            
             rdt_send(seq, data, DEST)
             seq += 1
         else:
@@ -120,5 +125,6 @@ try:
 except:
     sys.stderr.write("Connection error\n")
 finally:
+    f.close()
     connection.close()
 
