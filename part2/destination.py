@@ -1,4 +1,5 @@
 from socket import socket, AF_INET, SOCK_DGRAM, timeout
+import sys
 
 # Calculate IPv4 Checksum for given data
 def calculate_checksum(message):
@@ -15,8 +16,12 @@ def calculate_checksum(message):
     return ~s & 0xffff
 
 SOURCE_IP = "localhost"
-SOURCE_PORT = 10000
+SOURCE_PORT = 9999
 SOURCE = (SOURCE_IP, SOURCE_PORT)
+
+BROKER_IP = "localhost"
+BROKER_PORT = 10000
+BROKER = (BROKER_IP, BROKER_PORT)
 
 DEST_IP = "localhost"
 DEST_PORT = 10001
@@ -46,18 +51,21 @@ while True:
         # TODO send NACK in case of receiving corrupted message
         continue
 
-    print message
+    #print message
+    #sys.stdout.write(content)
+
+    print ack_seq, checksum
 
     # Receiving message with expected sequence number equal to sequence number
     if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
         ack_msg = ack_seq + "|"
         msg_send = ack_msg + str(calculate_checksum(ack_msg))
-        send_sock.sendto(msg_send, SOURCE)
+        send_sock.sendto(msg_send, BROKER)
         exp_seq += 1
     # Receiving message with expected sequence number greater than sequence number
-    # That means source didn't received my previous ACK message
+    # That means BROKER didn't received my previous ACK message
     elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
         ack_msg = ack_seq + "|"
         msg_send = ack_msg + str(calculate_checksum(ack_msg))
-        send_sock.sendto(msg_send, SOURCE)
+        send_sock.sendto(msg_send, BROKER)
     # else: TODO send NACK in case of receiving corrupted message
