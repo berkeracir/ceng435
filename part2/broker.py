@@ -30,8 +30,8 @@ def calculate_timeout(sample_rtt):
     global estimated_rtt
     global dev_rtt
 
-    alpha = 0.125
-    beta = 0.25
+    alpha = 0.5
+    beta = 0.125
     estimated_rtt = (1-alpha)*estimated_rtt + alpha*sample_rtt
     dev_rtt = (1-beta)*dev_rtt + beta*abs(sample_rtt-estimated_rtt)
 
@@ -39,8 +39,6 @@ def calculate_timeout(sample_rtt):
 def rdt_send(seq, content, DEST):
     msg = str(seq) + "|" + content + "|"
     msg_send = msg + str(calculate_checksum(msg))
-
-    #print seq, calculate_checksum(msg), len(remainder)
 
     tstart = datetime.now()
     send_sock.sendto(msg_send, DEST)
@@ -52,7 +50,6 @@ def rdt_send(seq, content, DEST):
             message, address = recv_sock.recvfrom(SOCKET_SIZE)
             tend = datetime.now()
         except timeout: # In case of timeout, send the message again
-            #print "Timeout"
             tstart = datetime.now()
             send_sock.sendto(msg_send, DEST)
         except KeyboardInterrupt:
@@ -60,15 +57,13 @@ def rdt_send(seq, content, DEST):
         else:
             delta = tend - tstart
             rtt = float(float(delta.microseconds)/1000)
-            #print "ACK message:", message, "(%f ms)" % rtt
 
             # Try Except block is for detecting corrupted message delimiter('|')
             try:
                 checksum = message.split('|')[-1]
                 ack_seq = message.split('|')[0]
             except ValueError:
-                "Corrupted ACK Message"
-                # Send the previous message again
+                # Corrupted ACK Message, send the previous message again
                 continue
 
             if calculate_checksum(ack_seq + "|") == int(checksum) and ack_seq == str(seq):

@@ -24,21 +24,20 @@ tcp_sock = socket(AF_INET, SOCK_STREAM)
 
 try:
     tcp_sock.connect(SOURCE)
-    tstart = datetime.now()
 
     with open(sys.argv[1], "rb") as f:
         data = f.read(SOCKET_SIZE-MAX_HEADER_SIZE)
+        tstart = datetime.now()
         
-
         while data:
             tcp_sock.send(data)
             rcv_data = tcp_sock.recv(SOCKET_SIZE)
 
             data = f.read(SOCKET_SIZE-MAX_HEADER_SIZE)
 
-    tend = datetime.now()
-    delta = float((tstart - tend).microseconds)/1000.0
-    sys.stdout.write("File %s is sent in total of %f ms.\n" % (sys.argv[1], delta))
+        tend = datetime.now()
+        delta = float((tstart - tend).microseconds)/1000.0
+        sys.stdout.write("File %s is sent in total of %f ms.\n" % (sys.argv[1], delta))
 finally:
     tcp_sock.close()
     sys.exit()
