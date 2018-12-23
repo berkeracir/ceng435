@@ -52,12 +52,11 @@ while True:
         continue
 
     #print message
-    #sys.stdout.write(content)
-
-    print ack_seq, checksum
 
     # Receiving message with expected sequence number equal to sequence number
     if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
+        sys.stdout.write(content)
+        
         ack_msg = ack_seq + "|"
         msg_send = ack_msg + str(calculate_checksum(ack_msg))
         send_sock.sendto(msg_send, BROKER)

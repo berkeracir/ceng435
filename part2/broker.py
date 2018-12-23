@@ -3,6 +3,7 @@ from datetime import datetime
 import sys
 
 SOCKET_SIZE = 1024
+MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
 dev_rtt = 0.0
@@ -36,7 +37,7 @@ def rdt_send(seq, content, DEST):
     msg = str(seq) + "|" + content + "|"
     msg_send = msg + str(calculate_checksum(msg))
 
-    print seq, calculate_checksum(msg), len(remainder)
+    #print seq, calculate_checksum(msg), len(remainder)
 
     tstart = datetime.now()
     send_sock.sendto(msg_send, DEST)
@@ -91,11 +92,6 @@ send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
 tcp_sock = socket(AF_INET, SOCK_STREAM)
 
-"""tcp_sock.bind(SOURCE)
-tcp_sock.listen(1)
-
-connection, address = tcp_sock.accept()"""
-
 try:
     recv_sock.bind(BROKER)
     recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
@@ -108,33 +104,21 @@ try:
     seq = 0
     remainder = ""
 
-    while True:
+    while True: # TODO: Implement Go-Back-N
         header_size = len(str(seq) + "||" + str(2**16-1))
-        data = connection.recv(SOCKET_SIZE)
+        data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
 
         if data:
-            if len(remainder) + header_size > SOCKET_SIZE:
+            sys.stdout.write(data)
 
-                
-            offset = SOCKET_SIZE-header_size-len(remainder)
-            content = remainder + data[:offset]
-            remainder = data[offset:]
-            #sys.stdout.write(content) # DEBUG
-
-            rdt_send(seq, content, DEST)
+            rdt_send(seq, data, DEST)
             seq += 1
-            
         else:
-            if remainder:
-                #sys.stdout.write(remainder) # DEBUG
-                rdt_send(seq, remainder, DEST)
-                seq += 1
             break
 
         connection.sendall(data)
 except:
-    print "Connection error"
-    sys.exit()
+    sys.stderr.write("Connection error\n")
 finally:
     connection.close()
 
