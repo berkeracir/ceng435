@@ -35,7 +35,7 @@ recv_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock.bind(DEST)
 
 exp_seq = 0
-
+a = open("serverdata.txt", "w+")
 while True:
     # Received message must be in the format of seq|message|checksum
     message, address = recv_sock.recvfrom(SOCKET_SIZE)
@@ -48,24 +48,25 @@ while True:
         content = "|".join(data.split('|')[1:-1])
     except ValueError:
         "Corrupted ACK Message"
-        # TODO send NACK in case of receiving corrupted message
-        continue
+        ack_msg = str(exp_seq - 1) + "|"
+        msg_send = ack_msg + str(calculate_checksum(ack_msg))
+        send_sock.sendto(msg_send, BROKER) 
 
     #print message
-    #sys.stdout.write(content)
-
-    print ack_seq, checksum
 
     # Receiving message with expected sequence number equal to sequence number
     if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
+        print "seqnum :    " + ack_seq
+        
         ack_msg = ack_seq + "|"
         msg_send = ack_msg + str(calculate_checksum(ack_msg))
         send_sock.sendto(msg_send, BROKER)
         exp_seq += 1
+        a.write(content)
     # Receiving message with expected sequence number greater than sequence number
     # That means BROKER didn't received my previous ACK message
-    elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
-        ack_msg = ack_seq + "|"
+    else:
+        ack_msg = str(exp_seq - 1) + "|"
         msg_send = ack_msg + str(calculate_checksum(ack_msg))
-        send_sock.sendto(msg_send, BROKER)
+        send_sock.sendto(msg_send, BROKER) 
     # else: TODO send NACK in case of receiving corrupted message
