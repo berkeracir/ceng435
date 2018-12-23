@@ -29,35 +29,41 @@ sock.bind(server_address)
 
 expected_seqnum = 0
 i = 0
-a= open("serverdata.txt","w+")
 
+a= open("serverdata.txt","w+")
 while True:
     try:
+        
         #get packet
         packet, address = sock.recvfrom(1000)
         if not packet:
             continue
 
         #extract packet
-        seq_num, data, checksum = extract_packet(packet)      
+        seq_num, data, checksum = extract_packet(packet)     
+        print "seqnum:  " + str(seq_num)
+        print "expectedseqnum:  " + str(expected_seqnum) 
         #it means we get null message, close server
         if checksum == 0 and seq_num == 0 and isinstance(checksum, int) :
             print "Client closed the socket"
             break
         #Check the data (sequence number, checksum)
-        if seq_num == expected_seqnum or checksum == calculate_checksum(data):
-            ack_packet = str(seq_num) + 'acknowledgement'
+        if seq_num == expected_seqnum and checksum == calculate_checksum(data):
+            ack_packet = str(seq_num) + '|' + 'acknowledgement'
             sent = sock.sendto(ack_packet, address)
             expected_seqnum += 1
+            print data
             a.write(data)
         else: #we get unexpected sequence number, send previous ack
             ack_packet = str(expected_seqnum -1) + 'acknowledgement'
             sent = sock.sendto(ack_packet, address)
-
+            print "gg"
+        
     except KeyboardInterrupt:
         raise
     except:
         print "exception"
+        
         continue
 
 file.close()

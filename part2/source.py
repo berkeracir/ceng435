@@ -50,7 +50,7 @@ class Timer(object):
 # we need to make window size smaller
 def set_window_size(num_packets):
     global base
-    return min(WINDOW_SIZE, num_packets - base)
+    return min(WINDOW_SIZE, num_packets - base - 1)
 
 #Calculates checksum
 def calculate_checksum(message):
@@ -74,8 +74,11 @@ def receive(sock):
 
     while True:
         ack_data, server = sock.recvfrom(ACK_PACKET_SIZE)
-        seq_num, ack_message = int(ack_data[0]), ack_data[1:16]
+        split = ack_data.find('|')
+        seq_num = int(ack_data[:split])
         # If we get an ACK for the first in-flight packet
+        print "seq ack  " + str(seq_num)
+        print "base  " + str(base)
         if (seq_num >= base):
             mutex.acquire()
             base = seq_num + 1
@@ -85,23 +88,27 @@ def receive(sock):
 
  ###### ###### ###### ###### ###### ###### helper functions END ###### ###### ###### ###### ###### ###### 
 
-
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 server_address = ('localhost', 10000) ##localhost, portnumber
 
-
 timer = Timer(1) #implies that timeout is 1 sec
-seq_num = 0 # sequence number 0 to 9
-packets = [] #list of all packets, because before sending any data,
+
+
 #first thing that we are going to do is packetizing
 mutex = thread.allocate_lock()
-
+a = open("3.txt", "w+")
 try:
     # Open file
     with open(sys.argv[1]) as f: 
         #packetize the data till to the end
         i=0
+        global mutex
+        global base
+        global send_timer
+        seq_num = 0 # sequence number 0 to 9
+        packets = [] #list of all packets, because before sending any data,
+
         while True:
             #read PACKET_SIZE byte data from file
             message = f.read(PACKET_SIZE) 
@@ -114,18 +121,23 @@ try:
         next_to_send = 0 #next packet's sequence number that we are going to send
         num_packets = len(packets)   
         window_size = set_window_size(num_packets) #set window size
-        thread.start_new_thread(receive, (sock, ))   #start receiver function, we use it to get ack messages 
+        thread.start_new_thread(receive, (sock, ))   #start receiver function, we use it to get ack messages
+        base = 0
         while base < num_packets:
             mutex.acquire()#lock
+            print "lock for get data"
             #there are packet that we can send, send till end of window
+            if next_to_send == num_packets:
+                break
+            
             while next_to_send < base + window_size:
-                sent = sock.sendto(packets[i], server_address)
+                if next_to_send == num_packets:
+                    break 
+                sent = sock.sendto(packets[next_to_send], server_address)
+                if base == next_to_send:
+                    timer.start()
+                print next_to_send    
                 next_to_send += 1
-                split1 = packets[i].find('|||') #for debug 
-                split2 = packets[i].find(' | ') #for debug 
-                print 'seq: ' + str(packets[i][:split1]) #for debug 
-                print 'checksum' + str(packets[i][split2 +3:]) #for debug
-
             #start timer if is not running
             if not timer.running():
                 print 'start timer'#for debug 
@@ -149,7 +161,7 @@ try:
             mutex.release() #release
 
         # send null message to close server, with that null message we indicate that we send all packets
-        sent = sock.sendto('0' + 'NULLMESSAGE' + ' | ' + '0', server_address)      
+     
 finally:
     print >>sys.stderr, 'closing socket'
     sock.close()
