@@ -1,156 +1,95 @@
-import socket
-import sys
-import time
-import thread
+from socket import socket, AF_INET, SOCK_DGRAM, timeout
+from datetime import datetime
 
-PACKET_SIZE = 512
-ACK_PACKET_SIZE = 100
-WINDOW_SIZE = 7
-base = 0
+SOCKET_SIZE = 1024
 
-#Timer class
-class Timer(object):
-    TIMER_STOP = -1
-    
-    def __init__(self, duration):
-        self._start_time = self.TIMER_STOP
-        self._duration = duration
+estimated_rtt = 100.0
+dev_rtt = 0.0
 
-    # Starts the timer
-    def start(self):
-        if self._start_time == self.TIMER_STOP:
-            self._start_time = time.time()
-
-    # Stops the timer
-    def stop(self):
-        if self._start_time != self.TIMER_STOP:
-            self._start_time = self.TIMER_STOP
-
-    # Determines whether the timer is runnning
-    def running(self):
-        return self._start_time != self.TIMER_STOP
-
-    # Determines whether the timer timed out
-    def timeout(self):
-        if not self.running():
-            return True
-        else:
-            return time.time() - self._start_time >= self._duration
-    
-    #return time difference if timer is running
-    def get_rtt(self):
-        if self.running():
-            return time.time() - self._start_time
-        else:
-            return -1
-
-
- ###### ###### ###### ###### ######  helper functions START ###### ###### ###### ###### ###### ###### ###### 
-#set window size, we need this because when we come to last packets,
-# we need to make window size smaller
-def set_window_size(num_packets):
-    global base
-    return min(WINDOW_SIZE, num_packets - base)
-
-#Calculates checksum
+# Calculate IPv4 Checksum for given data
 def calculate_checksum(message):
     s = 0
-    for i in range(0, len(message), 2):
-        w = ord(message[i]) + (ord(message[i+1]) << 8) 
-        s = (s + w & 0xffff) + (s + w >> 16)
+    if len(message) % 2 == 0:
+        for i in range(0, len(message), 2):
+            w = ord(message[i]) + (ord(message[i+1]) << 8) 
+            s = (s + w & 0xffff) + (s + w >> 16)
+    else:
+        for i in range(0, len(message)-1, 2):
+            w = ord(message[i]) + (ord(message[i+1]) << 8) 
+            s = (s + w & 0xffff) + (s + w >> 16)
+        # TODO: update s one more time!
     return ~s & 0xffff
 
-#Prepare packet which is -> sequence number|||data | checksum
-def make_packet(seq_num, data, checksum):
-    seq_bytes = str(seq_num)
-    checksum_bytes = str(checksum)
-    return seq_bytes + '|||' + data + ' | ' + checksum_bytes
+# Calculate Timeout value depending on previous RTT and its deviation
+def calculate_timeout(sample_rtt):
+    global estimated_rtt
+    global dev_rtt
 
-#receive ack packets and update base according to that
-def receive(sock):
-    global mutex
-    global base
-    global timer
+    alpha = 0.25
+    beta = 0.25
+    estimated_rtt = (1-alpha)*estimated_rtt + alpha*sample_rtt
+    dev_rtt = (1-beta)*dev_rtt + beta*abs(sample_rtt-estimated_rtt)
 
-    while True:
-        ack_data, server = sock.recvfrom(ACK_PACKET_SIZE)
-        seq_num, ack_message = int(ack_data[0]), ack_data[1:16]
-        # If we get an ACK for the first in-flight packet
-        if (seq_num >= base):
-            mutex.acquire()
-            base = seq_num + 1
-            print('Base updated', base)
-            timer.stop()
-            mutex.release()
+SOURCE_IP = "localhost"
+SOURCE_PORT = 10000
+SOURCE = (SOURCE_IP, SOURCE_PORT)
 
- ###### ###### ###### ###### ###### ###### helper functions END ###### ###### ###### ###### ###### ###### 
+DEST_IP = "localhost"
+DEST_PORT = 10001
+DEST = (DEST_IP, DEST_PORT)
 
+send_sock = socket(AF_INET, SOCK_DGRAM)
+recv_sock = socket(AF_INET, SOCK_DGRAM)
 
-# Create a UDP socket
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_address = ('localhost', 10000) ##localhost, portnumber
+recv_sock.bind(SOURCE)
+recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
 
+seq = 0
 
-timer = Timer(1) #implies that timeout is 1 sec
-seq_num = 0 # sequence number 0 to 9
-packets = [] #list of all packets, because before sending any data,
-#first thing that we are going to do is packetizing
-mutex = thread.allocate_lock()
+while True:
+    # TODO: get the data from 5 MB file and put it into a message
+    user_input = raw_input("Message: ")
 
-try:
-    # Open file
-    with open(sys.argv[1]) as f: 
-        #packetize the data till to the end
-        i=0
-        while True:
-            #read PACKET_SIZE byte data from file
-            message = f.read(PACKET_SIZE) 
-            if not message:
-                break
-            #add to packets list with sequence number and checksum
-            packets.append(make_packet(seq_num, message, calculate_checksum(message)))
-            seq_num += 1
+    msg = str(seq) + "|" + user_input + "|"
+    msg_send = msg + str(calculate_checksum(msg))
+    tstart = datetime.now()
+    # Sending message in the format of seq|message|checksum
+    # Checksum is calculated for seq|message|
+    send_sock.sendto(msg_send, DEST)
+    print "Sending:", msg_send, "(Timeout: " + str(recv_sock.gettimeout()*1000) + " ms)"
 
-        next_to_send = 0 #next packet's sequence number that we are going to send
-        num_packets = len(packets)   
-        window_size = set_window_size(num_packets) #set window size
-        thread.start_new_thread(receive, (sock, ))   #start receiver function, we use it to get ack messages 
-        while base < num_packets:
-            mutex.acquire()#lock
-            #there are packet that we can send, send till end of window
-            while next_to_send < base + window_size:
-                sent = sock.sendto(packets[i], server_address)
-                next_to_send += 1
-                split1 = packets[i].find('|||') #for debug 
-                split2 = packets[i].find(' | ') #for debug 
-                print 'seq: ' + str(packets[i][:split1]) #for debug 
-                print 'checksum' + str(packets[i][split2 +3:]) #for debug
+    # TODO: implement Go-Back-N method
+    ack_received = False
+    while not ack_received:
+        try:
+            message, address = recv_sock.recvfrom(SOCKET_SIZE)
+            tend = datetime.now()
+        except timeout: # In case of timeout, send the message again
+            print "Timeout"
+            tstart = datetime.now()
+            send_sock.sendto(msg_send, DEST)
+        except KeyboardInterrupt:
+            raise
+        else:
+            delta = tend - tstart
+            rtt = float(float(delta.microseconds)/1000)
+            print "ACK message:", message, "(%f ms)" % rtt
 
-            #start timer if is not running
-            if not timer.running():
-                print 'start timer'#for debug 
-                timer.start()
-           
-           #if timer is running and not timeout, stop this loop for 0.05 sec, let receive function run.
-           #Get ack messages from there
-            while timer.running() and not timer.timeout():
-                mutex.release()
-                time.sleep(0.05) #let receive function run for this 0.05 sec
-                mutex.acquire()
-            
-            #we fucked up, send all message again
-            if timer.timeout():
-                print 'stop timer and set base to beginning'#for debug 
-                timer.stop()
-                next_to_send = base           
-            else:
-                window_size = set_window_size(num_packets) # set new window size.NOTE It does not change until last packets
-            
-            mutex.release() #release
+            # Try Except block is for detecting corrupted message delimiter('|')
+            try:
+                checksum = message.split('|')[-1]
+                ack_seq = message.split('|')[0]
+            except ValueError:
+                "Corrupted ACK Message"
+                # Send the previous message again
+                continue
 
-        # send null message to close server, with that null message we indicate that we send all packets
-        sent = sock.sendto('0' + 'NULLMESSAGE' + ' | ' + '0', server_address)      
-finally:
-    print >>sys.stderr, 'closing socket'
-    sock.close()
+            if calculate_checksum(ack_seq + "|") == int(checksum) and ack_seq == str(seq):
+                ack_received = True
+                    
+                calculate_timeout(rtt)
+                recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
+                
+
+    seq = seq + 1
 
