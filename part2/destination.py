@@ -38,7 +38,7 @@ recv_sock = socket(AF_INET, SOCK_DGRAM)
 exp_seq = 0
 
 try:
-    dest_timeout = 10
+    dest_timeout = 5
     recv_sock.bind(DEST)
     recv_sock.settimeout(dest_timeout)
 
@@ -55,7 +55,7 @@ try:
             ack_seq = data.split('|')[0]
             content = "|".join(data.split('|')[1:-1])
         except ValueError:
-            "Corrupted ACK Message"
+            print "Corrupted ACK Message"
             # TODO send NACK in case of receiving corrupted message
             continue
 
@@ -71,8 +71,8 @@ try:
             exp_seq += 1
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
-        elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
-            ack_msg = ack_seq + "|"
+        else: # if calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
+            ack_msg = str(exp_seq-1) + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
             send_sock.sendto(msg_send, BROKER)
         # else: TODO send NACK in case of receiving corrupted message

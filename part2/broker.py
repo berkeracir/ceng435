@@ -6,6 +6,7 @@ if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
 SOCKET_SIZE = 1024
+WINDOW_SIZE = 100
 MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
@@ -36,7 +37,7 @@ def calculate_timeout(sample_rtt):
     dev_rtt = (1-beta)*dev_rtt + beta*abs(sample_rtt-estimated_rtt)
 
 # Reliable Data Send over UDP connection
-def rdt_send(seq, content, DEST):
+"""def rdt_send(seq, content, DEST):
     msg = str(seq) + "|" + content + "|"
     msg_send = msg + str(calculate_checksum(msg))
 
@@ -72,7 +73,13 @@ def rdt_send(seq, content, DEST):
                 calculate_timeout(rtt)
                 recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
 
-    seq = seq + 1
+#def rdt_receive(seq)"""
+
+def packetize(seq, content):
+    msg = str(seq) + "|" + content + "|"
+    msg_send = msg + str(calculate_checksum(msg))
+
+    return msg_send
 
 SOURCE_IP = "localhost"
 SOURCE_PORT = 9999
@@ -102,24 +109,65 @@ try:
     f = open(sys.argv[1], "w+")
 
     seq = 0
-    remainder = ""
+    base = 0
+    msg_list = []
 
+    data_done = False
     while True: # TODO: Implement Go-Back-N
-        header_size = len(str(seq) + "||" + str(2**16-1))
-        data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
+        if not data_done:
+            while seq < base + WINDOW_SIZE:
+                data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
 
-        if data:
-            f.write(data)
-            
-            rdt_send(seq, data, DEST)
-            seq += 1
-        else:
+                if data:
+                    f.write(data)
+                    msg_list.append(data)
+                    seq += 1
+                else:
+                    data_done = True
+                    break
+
+                connection.sendall(data)
+
+        for index in range(len(msg_list)):
+            if index == 0:
+                tstart = datetime.now()
+
+            msg_seq = base + index
+            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST)
+
+        ack_count = 0
+        while ack_count < WINDOW_SIZE:
+            try:
+                message, address = recv_sock.recvfrom(SOCKET_SIZE)
+            except timeout:
+                break
+            except KeyboardInterrupt:
+                raise
+            else:
+                if ack_count == 0:
+                    tend = datetime.now()
+                    delta = tend - tstart
+                    rtt = float(float(delta.microseconds)/1000)
+                    calculate_timeout(rtt)
+                    recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
+
+                ack_count += 1
+
+                try:
+                    checksum = message.split('|')[-1]
+                    ack_seq = message.split('|')[0]
+                except ValueError:
+                    # Corrupted ACK Message, send the previous message again
+                    continue
+
+                if calculate_checksum(ack_seq + "|") == int(checksum) and ack_seq == str(base):
+                    base += 1
+                    msg_list.pop()
+        
+        if data_done and seq == base:
             break
-
-        connection.sendall(data)
 except:
-    sys.stderr.write("Connection error\n")
+    sys.stderr.write("Connection error or IDK\n")
 finally:
     f.close()
     connection.close()
-
