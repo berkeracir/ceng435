@@ -126,14 +126,11 @@ try:
                     print "Corrupted ACK Message" #, send the previous message again"
                     ack_count += 1
                     continue
-                if previous_ack == int(ack_seq):
-                    dup_ack += 1
-                else:
-                    dup_ack == 0
-                previous_ack = int(ack_seq)
-                if dup_ack == 2:
-                    break
-
+       		if previous_ack == int(ack_seq):
+			dup_ack += 1
+		else:
+			dup_ack = 0
+		previous_ack = int(ack_seq)
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
                         msg_list.pop(0)
