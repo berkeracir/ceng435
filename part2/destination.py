@@ -38,7 +38,7 @@ recv_sock = socket(AF_INET, SOCK_DGRAM)
 exp_seq = 0
 
 try:
-    dest_timeout = 60
+    dest_timeout = 5
     recv_sock.bind(DEST)
     recv_sock.settimeout(dest_timeout)
 

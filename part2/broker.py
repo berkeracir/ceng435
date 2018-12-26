@@ -42,12 +42,12 @@ def packetize(seq, content):
 
     return msg_send
 
-SOURCE_IP = "10.10.1.1"
-SOURCE_PORT = 51795
+SOURCE_IP = "localhost"
+SOURCE_PORT = 9999
 SOURCE = (SOURCE_IP, SOURCE_PORT)
 
-BROKER_IP = "10.10.1.2"
-BROKER_PORT = 51795
+BROKER_IP = "localhost"
+BROKER_PORT = 10000
 BROKER = (BROKER_IP, BROKER_PORT)
 
 DEST_IP = "localhost"
@@ -98,8 +98,6 @@ try:
             print "Sending: ", msg_seq
 
         ack_count = 0
-        previous_ack = -1
-        dub_ack = 0
         while ack_count < WINDOW_SIZE:
             try:
                 message, address = recv_sock.recvfrom(SOCKET_SIZE)
@@ -123,15 +121,7 @@ try:
                     print "Received:", ack_seq
                 except ValueError:
                     print "Corrupted ACK Message" #, send the previous message again"
-                    ack_count += 1
                     continue
-
-		        if previous_ack == int(ack_seq):
-                    break
-                else:
-		            dup_ack = 0
-
-                previous_ack = int(ack_seq)
 
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
@@ -146,4 +136,4 @@ except:
     sys.stderr.write("Connection error or IDK\n")
 finally:
     f.close()
-    connection.close()  
+    connection.close()
