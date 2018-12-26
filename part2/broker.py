@@ -42,12 +42,12 @@ def packetize(seq, content):
 
     return msg_send
 
-SOURCE_IP = "localhost"
-SOURCE_PORT = 9999
+SOURCE_IP = "10.10.1.1"
+SOURCE_PORT = 51795
 SOURCE = (SOURCE_IP, SOURCE_PORT)
 
-BROKER_IP = "localhost"
-BROKER_PORT = 10000
+BROKER_IP = "10.10.1.2"
+BROKER_PORT = 51795
 BROKER = (BROKER_IP, BROKER_PORT)
 
 DEST_IP = "localhost"
