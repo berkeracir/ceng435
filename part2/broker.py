@@ -98,6 +98,8 @@ try:
             print "Sending: ", msg_seq
 
         ack_count = 0
+        dup_ack = 0
+        previous_ack = -1
         while ack_count < WINDOW_SIZE:
             try:
                 message, address = recv_sock.recvfrom(SOCKET_SIZE)
@@ -113,7 +115,8 @@ try:
                     calculate_timeout(rtt)
                     recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
                     print "Timeout:", (estimated_rtt+4*dev_rtt), "ms"
-
+                
+                
                 try:
                     checksum = message.split('|')[-1]
                     ack_seq = message.split('|')[0]
@@ -121,14 +124,22 @@ try:
                     print "Received:", ack_seq
                 except ValueError:
                     print "Corrupted ACK Message" #, send the previous message again"
+                    ack_count += 1
                     continue
+                if previous_ack == int(ack_seq):
+                    dup_ack += 1
+                else:
+                    dup_ack == 0
+                previous_ack = int(ack_seq)
+                if dup_ack == 2:
+                    break
 
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
-                        base += 1
                         msg_list.pop(0)
-
                         ack_count += 1
+                    base = ack_seq + 1
+                    dup_ack = 0
         
         if data_done and seq == base:
             break
