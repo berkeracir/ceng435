@@ -40,7 +40,7 @@ exp_seq = 0
 try:
     dest_timeout = 5
     recv_sock.bind(DEST)
-    #recv_sock.settimeout(dest_timeout)
+    recv_sock.settimeout(dest_timeout)
 
     f = open(sys.argv[1], "w+")
 

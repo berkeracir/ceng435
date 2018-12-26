@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
 SOCKET_SIZE = 1024
-WINDOW_SIZE = 10
+WINDOW_SIZE = 16
 MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
@@ -95,7 +95,7 @@ try:
 
             msg_seq = base + index
             send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST)
-            #print "Sending: ", msg_seq
+            print "Sending: ", msg_seq
 
         ack_count = 0
         while ack_count < WINDOW_SIZE:
