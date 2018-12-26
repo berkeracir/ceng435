@@ -138,7 +138,7 @@ try:
                     for i in range(int(ack_seq) - base + 1):
                         msg_list.pop(0)
                         ack_count += 1
-                    base = ack_seq + 1
+                    base = int(ack_seq) + 1
                     dup_ack = 0
         
         if data_done and seq == base:
