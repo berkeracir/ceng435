@@ -98,8 +98,9 @@ try:
             print "Sending: ", msg_seq
 
         ack_count = 0
-	previous_ack = -1
-	dub_ack = 0
+        previous_ack = -1
+        dub_ack = 0
+
         while ack_count < WINDOW_SIZE:
             try:
                 message, address = recv_sock.recvfrom(SOCKET_SIZE)
@@ -123,14 +124,15 @@ try:
                     print "Received:", ack_seq
                 except ValueError:
                     print "Corrupted ACK Message" #, send the previous message again"
-		    ack_count += 1
+                    ack_count += 1
                     continue
-		if previous_ack == int(ack_seq):
-	       	    break
-		else:
-		    dup_ack = 0
-		previous_ack = int(ack_seq)
-	
+
+                if previous_ack == int(ack_seq):
+                    break
+                else:
+                    dub_ack = 0
+
+                previous_ack = int(ack_seq)
 
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
