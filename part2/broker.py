@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
 SOCKET_SIZE = 1024
-WINDOW_SIZE = 100
+WINDOW_SIZE = 1
 MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
@@ -134,6 +134,7 @@ try:
 
             msg_seq = base + index
             send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST)
+            print "Sending:", msg_seq
 
         ack_count = 0
         while ack_count < WINDOW_SIZE:
@@ -156,13 +157,16 @@ try:
                 try:
                     checksum = message.split('|')[-1]
                     ack_seq = message.split('|')[0]
+
+                    print "Received:", ack_seq, "base:" , base, "seq:", seq
                 except ValueError:
-                    # Corrupted ACK Message, send the previous message again
+                    print "Corrupted ACK Message" #, send the previous message again"
                     continue
 
-                if calculate_checksum(ack_seq + "|") == int(checksum) and ack_seq == str(base):
-                    base += 1
-                    msg_list.pop()
+                if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
+                    for i in range(int(ack_seq) - base + 1):
+                        base += 1
+                        msg_list.pop()
         
         if data_done and seq == base:
             break

@@ -39,6 +39,8 @@ try:
         delta = float((tend - tstart).seconds)*1000 + float((tend - tstart).microseconds/1000.0)
         sys.stdout.write("File %s is sent in total of %f ms.\n" % (sys.argv[1], delta))
         print tend, tstart
+except:
+    sys.stderr.write("Connection Error\n")
 finally:
     tcp_sock.close()
     sys.exit()

@@ -40,7 +40,7 @@ exp_seq = 0
 try:
     dest_timeout = 5
     recv_sock.bind(DEST)
-    recv_sock.settimeout(dest_timeout)
+    #recv_sock.settimeout(dest_timeout)
 
     f = open(sys.argv[1], "w+")
 
@@ -54,6 +54,8 @@ try:
             data = "|".join(message.split('|')[:-1]) + "|"
             ack_seq = data.split('|')[0]
             content = "|".join(data.split('|')[1:-1])
+
+            #print "Received:", ack_seq
         except ValueError:
             print "Corrupted ACK Message"
             # TODO send NACK in case of receiving corrupted message
@@ -64,18 +66,30 @@ try:
         # Receiving message with expected sequence number equal to sequence number
         if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
             f.write(content)
+            print "Writing: ", ack_seq
             
             ack_msg = ack_seq + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
             send_sock.sendto(msg_send, BROKER)
             exp_seq += 1
+
+            #print "Sending:", ack_seq
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
-        else: # if calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
+        #elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
+            #ack_msg = ack_seq + "|"
+            #msg_send = ack_msg + str(calculate_checksum(ack_msg))
+            #send_sock.sendto(msg_send, BROKER)
+
+            #print "Re-sending:", ack_seq
+        # TODO send NACK in case of receiving corrupted message
+        else:
             ack_msg = str(exp_seq-1) + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
             send_sock.sendto(msg_send, BROKER)
-        # else: TODO send NACK in case of receiving corrupted message
+
+            #print "Re-sending:", exp_seq-1
+
 except timeout:
     f.close()
     sys.stderr.write("%s is closed after waiting %d seconds.\n" % (sys.argv[0], dest_timeout))
