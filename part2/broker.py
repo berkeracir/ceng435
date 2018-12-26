@@ -6,7 +6,7 @@ if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
 SOCKET_SIZE = 1024
-WINDOW_SIZE = 1
+WINDOW_SIZE = 10
 MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
@@ -35,45 +35,6 @@ def calculate_timeout(sample_rtt):
     beta = 0.125
     estimated_rtt = (1-alpha)*estimated_rtt + alpha*sample_rtt
     dev_rtt = (1-beta)*dev_rtt + beta*abs(sample_rtt-estimated_rtt)
-
-# Reliable Data Send over UDP connection
-"""def rdt_send(seq, content, DEST):
-    msg = str(seq) + "|" + content + "|"
-    msg_send = msg + str(calculate_checksum(msg))
-
-    tstart = datetime.now()
-    send_sock.sendto(msg_send, DEST)
-
-    # TODO: implement Go-Back-N method
-    ack_received = False
-    while not ack_received:
-        try:
-            message, address = recv_sock.recvfrom(SOCKET_SIZE)
-            tend = datetime.now()
-        except timeout: # In case of timeout, send the message again
-            tstart = datetime.now()
-            send_sock.sendto(msg_send, DEST)
-        except KeyboardInterrupt:
-            raise
-        else:
-            delta = tend - tstart
-            rtt = float(float(delta.microseconds)/1000)
-
-            # Try Except block is for detecting corrupted message delimiter('|')
-            try:
-                checksum = message.split('|')[-1]
-                ack_seq = message.split('|')[0]
-            except ValueError:
-                # Corrupted ACK Message, send the previous message again
-                continue
-
-            if calculate_checksum(ack_seq + "|") == int(checksum) and ack_seq == str(seq):
-                ack_received = True
-                    
-                calculate_timeout(rtt)
-                recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
-
-#def rdt_receive(seq)"""
 
 def packetize(seq, content):
     msg = str(seq) + "|" + content + "|"
@@ -134,7 +95,7 @@ try:
 
             msg_seq = base + index
             send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST)
-            print "Sending:", msg_seq
+            #print "Sending: ", msg_seq
 
         ack_count = 0
         while ack_count < WINDOW_SIZE:
@@ -151,14 +112,13 @@ try:
                     rtt = float(float(delta.microseconds)/1000)
                     calculate_timeout(rtt)
                     recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
-
-                ack_count += 1
+                    print "Timeout:", (estimated_rtt+4*dev_rtt), "ms"
 
                 try:
                     checksum = message.split('|')[-1]
                     ack_seq = message.split('|')[0]
 
-                    print "Received:", ack_seq, "base:" , base, "seq:", seq
+                    print "Received:", ack_seq
                 except ValueError:
                     print "Corrupted ACK Message" #, send the previous message again"
                     continue
@@ -166,7 +126,9 @@ try:
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
                         base += 1
-                        msg_list.pop()
+                        msg_list.pop(0)
+
+                        ack_count += 1
         
         if data_done and seq == base:
             break

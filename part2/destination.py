@@ -66,14 +66,14 @@ try:
         # Receiving message with expected sequence number equal to sequence number
         if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
             f.write(content)
-            print "Writing: ", ack_seq
+            #print "Writing:", ack_seq
             
             ack_msg = ack_seq + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
             send_sock.sendto(msg_send, BROKER)
             exp_seq += 1
 
-            #print "Sending:", ack_seq
+            print "ACK:", ack_seq
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
         #elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
@@ -88,7 +88,7 @@ try:
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
             send_sock.sendto(msg_send, BROKER)
 
-            #print "Re-sending:", exp_seq-1
+            print "rACK:", exp_seq-1, "(" + ack_seq + ")"
 
 except timeout:
     f.close()
