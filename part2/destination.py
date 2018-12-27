@@ -4,7 +4,7 @@ import sys
 if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
-SOCKET_SIZE = 1024
+SOCKET_SIZE = 1000
 
 # Calculate IPv4 Checksum for given data
 def calculate_checksum(message):
@@ -20,27 +20,21 @@ def calculate_checksum(message):
         # TODO: update s one more time!
     return ~s & 0xffff
 
-"""SOURCE_IP = "localhost"
-SOURCE_PORT = 9999
-SOURCE = (SOURCE_IP, SOURCE_PORT)"""
-
-# TODO: add broker ip 10.10.2.1
-BROKER_IP = "10.10.4.1"
+BROKER_IP_1 = "10.10.2.1"
+BROKER_IP_2 = "10.10.4.1"
 BROKER_PORT = 51795
-BROKER = (BROKER_IP, BROKER_PORT)
-
-DEST_IP = "0.0.0.0"
-DEST_PORT = 51795
-DEST = (DEST_IP, DEST_PORT)
+BROKER_1 = (BROKER_IP_1, BROKER_PORT)
+BROKER_2 = (BROKER_IP_2, BROKER_PORT)
 
 send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
 
 exp_seq = 0
+route = 0
 
 try:
     dest_timeout = 60
-    recv_sock.bind(DEST)
+    recv_sock.bind(("0.0.0.0", 51795))
     recv_sock.settimeout(dest_timeout)
 
     f = open(sys.argv[1], "w+")
@@ -62,32 +56,32 @@ try:
             # TODO send NACK in case of receiving corrupted message
             continue
 
-        #print message
-
         # Receiving message with expected sequence number equal to sequence number
         if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
             f.write(content)
-            #print "Writing:", ack_seq
             
             ack_msg = ack_seq + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
-            send_sock.sendto(msg_send, BROKER)
+
+            if route == 0:
+                send_sock.sendto(msg_send, BROKER_1)
+            else:
+                send_sock.sendto(msg_send, BROKER_2)
+            route = 1 - route
             exp_seq += 1
 
             print "ACK:", ack_seq
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
-        #elif calculate_checksum(data) == int(checksum) and exp_seq > int(ack_seq):
-            #ack_msg = ack_seq + "|"
-            #msg_send = ack_msg + str(calculate_checksum(ack_msg))
-            #send_sock.sendto(msg_send, BROKER)
-
-            #print "Re-sending:", ack_seq
-        # TODO send NACK in case of receiving corrupted message
         else:
             ack_msg = str(exp_seq-1) + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
-            send_sock.sendto(msg_send, BROKER)
+
+            if route == 0:
+                send_sock.sendto(msg_send, BROKER_1)
+            else:
+                send_sock.sendto(msg_send, BROKER_2)
+            route = 1 - route
 
             print "rACK:", exp_seq-1, "(" + ack_seq + ")"
 

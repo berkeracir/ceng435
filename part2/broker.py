@@ -5,8 +5,8 @@ import sys
 if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
-SOCKET_SIZE = 1024
-WINDOW_SIZE = 16
+SOCKET_SIZE = 1000
+WINDOW_SIZE = 64
 MAX_HEADER_SIZE = len("5000||65535")
 
 estimated_rtt = 100.0
@@ -42,18 +42,16 @@ def packetize(seq, content):
 
     return msg_send
 
-"""SOURCE_IP = "10.10.1.1"
-SOURCE_PORT = 51795
-SOURCE = (SOURCE_IP, SOURCE_PORT)"""
-
 BROKER_IP = "10.10.1.2"
 BROKER_PORT = 51795
 BROKER = (BROKER_IP, BROKER_PORT)
 
 # TODO: add IP 10.10.3.2 too
-DEST_IP = "10.10.5.2"
+DEST_IP_1 = "10.10.5.2"
+DEST_IP_2 = "10.10.5.2"
 DEST_PORT = 51795
-DEST = (DEST_IP, DEST_PORT)
+DEST_1 = (DEST_IP_1, DEST_PORT)
+DEST_2 = (DEST_IP_2, DEST_PORT)
 
 send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
@@ -74,6 +72,8 @@ try:
     seq = 0
     base = 0
     msg_list = []
+
+    route = 0
 
     data_done = False
     while True: # TODO: Implement Go-Back-N
@@ -96,12 +96,14 @@ try:
                 tstart = datetime.now()
 
             msg_seq = base + index
-            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST)
+            if route == 0:
+                send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_1)
+            else:
+                send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
+            route = 1 - route
             print "Sending: ", msg_seq
 
         ack_count = 0
-        #previous_ack = -1
-        #dub_ack = 0
         while ack_count < WINDOW_SIZE:
             try:
                 message, address = recv_sock.recvfrom(SOCKET_SIZE)
@@ -127,13 +129,6 @@ try:
                     print "Corrupted ACK Message" #, send the previous message again"
                     ack_count += 1
                     continue
-                    
-                """if previous_ack == int(ack_seq):
-                    dup_ack += 1
-                else:
-		            dup_ack = 0
-
-                previous_ack = int(ack_seq)"""
 
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
