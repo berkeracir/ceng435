@@ -20,16 +20,17 @@ def calculate_checksum(message):
         # TODO: update s one more time!
     return ~s & 0xffff
 
-SOURCE_IP = "localhost"
+"""SOURCE_IP = "localhost"
 SOURCE_PORT = 9999
-SOURCE = (SOURCE_IP, SOURCE_PORT)
+SOURCE = (SOURCE_IP, SOURCE_PORT)"""
 
-BROKER_IP = "localhost"
-BROKER_PORT = 10000
+# TODO: add broker ip 10.10.2.1
+BROKER_IP = "10.10.4.1"
+BROKER_PORT = 51795
 BROKER = (BROKER_IP, BROKER_PORT)
 
-DEST_IP = "localhost"
-DEST_PORT = 10001
+DEST_IP = "0.0.0.0"
+DEST_PORT = 51795
 DEST = (DEST_IP, DEST_PORT)
 
 send_sock = socket(AF_INET, SOCK_DGRAM)
@@ -38,7 +39,7 @@ recv_sock = socket(AF_INET, SOCK_DGRAM)
 exp_seq = 0
 
 try:
-    dest_timeout = 55
+    dest_timeout = 60
     recv_sock.bind(DEST)
     recv_sock.settimeout(dest_timeout)
 
