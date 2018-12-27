@@ -27,7 +27,7 @@ with open(sys.argv[1], "rb") as f:
 
     tend = datetime.now()
     delta = tend - tstart
-    sys.stdout.write("File %s is sent in total of %f seconds.\n" % (sys.argv[1], delta.total_seconds()))
+    sys.stdout.write("%f seconds\n" % (delta.total_seconds()))
     print tend, tstart
 
 tcp_sock.close()

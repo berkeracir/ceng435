@@ -101,7 +101,7 @@ try:
             else:
                 send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
             route = 1 - route
-            print "Sending: ", msg_seq
+            #print "Sending: ", msg_seq
 
         ack_count = 0
         while ack_count < WINDOW_SIZE:
@@ -118,15 +118,15 @@ try:
                     rtt = float(float(delta.microseconds)/1000)
                     calculate_timeout(rtt)
                     recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
-                    print "Timeout:", (estimated_rtt+4*dev_rtt), "ms"
+                    #print "Timeout:", (estimated_rtt+4*dev_rtt), "ms"
 
                 try:
                     checksum = message.split('|')[-1]
                     ack_seq = message.split('|')[0]
 
-                    print "Received:", ack_seq
+                    #print "Received:", ack_seq
                 except ValueError:
-                    print "Corrupted ACK Message" #, send the previous message again"
+                    #print "Corrupted ACK Message" #, send the previous message again"
                     ack_count += 1
                     continue
 

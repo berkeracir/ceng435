@@ -70,7 +70,7 @@ try:
             route = 1 - route
             exp_seq += 1
 
-            print "ACK:", ack_seq
+            #print "ACK:", ack_seq
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
         else:
@@ -83,7 +83,7 @@ try:
                 send_sock.sendto(msg_send, BROKER_2)
             route = 1 - route
 
-            print "rACK:", exp_seq-1, "(" + ack_seq + ")"
+            #print "rACK:", exp_seq-1, "(" + ack_seq + ")"
 
 except timeout:
     f.close()
