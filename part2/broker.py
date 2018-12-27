@@ -96,11 +96,11 @@ try:
                 tstart = datetime.now()
 
             msg_seq = base + index
-            if route == 0:
-                send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_1)
-            else:
-                send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
-            route = 1 - route
+            #if route == 0:
+            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_1)
+            #else:
+            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
+            #route = 1 - route
             #print "Sending: ", msg_seq
 
         ack_count = 0

@@ -77,11 +77,11 @@ try:
             ack_msg = str(exp_seq-1) + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
 
-            if route == 0:
-                send_sock.sendto(msg_send, BROKER_1)
-            else:
-                send_sock.sendto(msg_send, BROKER_2)
-            route = 1 - route
+            #if route == 0:
+            send_sock.sendto(msg_send, BROKER_1)
+            #else:
+            send_sock.sendto(msg_send, BROKER_2)
+            #route = 1 - route
 
             #print "rACK:", exp_seq-1, "(" + ack_seq + ")"
 

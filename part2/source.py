@@ -28,7 +28,6 @@ with open(sys.argv[1], "rb") as f:
     tend = datetime.now()
     delta = tend - tstart
     sys.stdout.write("%f seconds\n" % (delta.total_seconds()))
-    print tend, tstart
 
 tcp_sock.close()
 sys.exit()
