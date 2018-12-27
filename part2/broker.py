@@ -42,16 +42,17 @@ def packetize(seq, content):
 
     return msg_send
 
-SOURCE_IP = "10.10.1.1"
+"""SOURCE_IP = "10.10.1.1"
 SOURCE_PORT = 51795
-SOURCE = (SOURCE_IP, SOURCE_PORT)
+SOURCE = (SOURCE_IP, SOURCE_PORT)"""
 
 BROKER_IP = "10.10.1.2"
 BROKER_PORT = 51795
 BROKER = (BROKER_IP, BROKER_PORT)
 
-DEST_IP = "localhost"
-DEST_PORT = 10001
+# TODO: add IP 10.10.3.2 too
+DEST_IP = "10.10.5.2"
+DEST_PORT = 51795
 DEST = (DEST_IP, DEST_PORT)
 
 send_sock = socket(AF_INET, SOCK_DGRAM)
@@ -59,10 +60,11 @@ recv_sock = socket(AF_INET, SOCK_DGRAM)
 tcp_sock = socket(AF_INET, SOCK_STREAM)
 
 try:
-    recv_sock.bind(BROKER)
+    # TODO
+    recv_sock.bind(("0.0.0.0", 51795))
     recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
 
-    tcp_sock.bind(SOURCE)
+    tcp_sock.bind(BROKER)
     tcp_sock.listen(1)
 
     connection, address = tcp_sock.accept()
