@@ -68,3 +68,5 @@ It contains our implementations before we deploy the scripts to remote hosts.
 
 # experiments directory
 It contains experiment results, those files are gathered from the Source node.
+---
+We can share our shared git repository if it will be useful in grading etc.
