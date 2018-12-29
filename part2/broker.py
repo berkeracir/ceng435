@@ -23,7 +23,6 @@ def calculate_checksum(message):
         for i in range(0, len(message)-1, 2):
             w = ord(message[i]) + (ord(message[i+1]) << 8) 
             s = (s + w & 0xffff) + (s + w >> 16)
-        # TODO: update s one more time!
     return ~s & 0xffff
 
 # Calculate Timeout value depending on previous RTT and its deviation
@@ -46,8 +45,7 @@ BROKER_IP = "10.10.1.2"
 BROKER_PORT = 51795
 BROKER = (BROKER_IP, BROKER_PORT)
 
-# TODO: add IP 10.10.3.2 too
-DEST_IP_1 = "10.10.5.2"
+DEST_IP_1 = "10.10.3.2"
 DEST_IP_2 = "10.10.5.2"
 DEST_PORT = 51795
 DEST_1 = (DEST_IP_1, DEST_PORT)
@@ -57,78 +55,66 @@ send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
 tcp_sock = socket(AF_INET, SOCK_STREAM)
 
-try:
-    # TODO
-    recv_sock.bind(("0.0.0.0", 51795))
-    recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
+# TODO
+recv_sock.bind(("0.0.0.0", 51795))
+recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
 
-    tcp_sock.bind(BROKER)
-    tcp_sock.listen(1)
+tcp_sock.bind(BROKER)
+tcp_sock.listen(1)
 
-    connection, address = tcp_sock.accept()
+connection, address = tcp_sock.accept()
 
-    f = open(sys.argv[1], "w+")
+f = open(sys.argv[1], "w+")
 
-    seq = 0
-    base = 0
-    msg_list = []
+seq = 0
+base = 0
+msg_list = []
 
-    route = 0
+route = 0
 
-    data_done = False
-    while True: # TODO: Implement Go-Back-N
-        if not data_done:
-            while seq < base + WINDOW_SIZE:
-                data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
+data_done = False
+while True:
+    if not data_done:
+        while seq < base + WINDOW_SIZE:
+            data = connection.recv(SOCKET_SIZE-MAX_HEADER_SIZE)
 
-                if data:
-                    f.write(data)
-                    msg_list.append(data)
-                    seq += 1
-                else:
-                    data_done = True
-                    break
-
-                connection.sendall(data)
-
-        for index in range(len(msg_list)):
-            if index == 0:
-                tstart = datetime.now()
-
-            msg_seq = base + index
-            #if route == 0:
-            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_1)
-            #else:
-            send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
-            #route = 1 - route
-            #print "Sending: ", msg_seq
-
-        ack_count = 0
-        while ack_count < WINDOW_SIZE:
-            try:
-                message, address = recv_sock.recvfrom(SOCKET_SIZE)
-            except timeout:
-                break
-            except KeyboardInterrupt:
-                raise
+            if data:
+                f.write(data)
+                msg_list.append(data)
+                seq += 1
             else:
-                if ack_count == 0:
-                    tend = datetime.now()
-                    delta = tend - tstart
-                    rtt = float(float(delta.microseconds)/1000)
-                    calculate_timeout(rtt)
-                    recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
-                    #print "Timeout:", (estimated_rtt+4*dev_rtt), "ms"
+                data_done = True
+                break
 
-                try:
-                    checksum = message.split('|')[-1]
-                    ack_seq = message.split('|')[0]
+            connection.sendall(data)
 
-                    #print "Received:", ack_seq
-                except ValueError:
-                    #print "Corrupted ACK Message" #, send the previous message again"
-                    ack_count += 1
-                    continue
+    for index in range(len(msg_list)):
+        if index == 0:
+            tstart = datetime.now()
+
+        msg_seq = base + index
+        send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_1)
+        send_sock.sendto(packetize(msg_seq, msg_list[index]), DEST_2)
+
+    ack_count = 0
+    while ack_count < WINDOW_SIZE:
+        try:
+            message, address = recv_sock.recvfrom(SOCKET_SIZE)
+        except timeout:
+            break
+        except KeyboardInterrupt:
+            raise
+        else:
+            if ack_count == 0:
+                tend = datetime.now()
+                delta = tend - tstart
+                rtt = float(float(delta.microseconds)/1000)
+                calculate_timeout(rtt)
+                recv_sock.settimeout((estimated_rtt+4*dev_rtt)/1000.0)
+
+            try:
+                checksum = message.split('|')[-1]
+                ack_seq = message.split('|')[0]
 
                 if calculate_checksum(ack_seq + "|") == int(checksum) and int(ack_seq) >= base:
                     for i in range(int(ack_seq) - base + 1):
@@ -136,11 +122,12 @@ try:
                         msg_list.pop(0)
 
                         ack_count += 1
-        
-        if data_done and seq == base:
-            break
-except:
-    sys.stderr.write("Connection error or IDK\n")
-finally:
-    f.close()
-    connection.close()  
+            except ValueError:
+                ack_count += 1
+                continue
+    
+    if data_done and seq == base:
+        break
+
+f.close()
+connection.close()  
