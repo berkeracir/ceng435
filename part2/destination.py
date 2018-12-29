@@ -4,6 +4,7 @@ import sys
 if len(sys.argv) < 2:
     sys.stderr.write(sys.argv[0] + " <file-to-be-written-in>\n")
 
+# Socket size
 SOCKET_SIZE = 1000
 
 # Calculate IPv4 Checksum for given data
@@ -20,19 +21,22 @@ def calculate_checksum(message):
         # TODO: update s one more time!
     return ~s & 0xffff
 
+# Set broker addresses
 BROKER_IP_1 = "10.10.2.1"
 BROKER_IP_2 = "10.10.4.1"
 BROKER_PORT = 51795
 BROKER_1 = (BROKER_IP_1, BROKER_PORT)
 BROKER_2 = (BROKER_IP_2, BROKER_PORT)
 
+# Open 2 UDP socket, one for receiving the data one for sending ACK messages
 send_sock = socket(AF_INET, SOCK_DGRAM)
 recv_sock = socket(AF_INET, SOCK_DGRAM)
 
 exp_seq = 0
-route = 0
 
 try:
+     # Set destination timeout to 60 seconds, we close the 
+     # destination socket after 60 seconds receiving last packet
     dest_timeout = 60
     recv_sock.bind(("0.0.0.0", 51795))
     recv_sock.settimeout(dest_timeout)
@@ -45,47 +49,38 @@ try:
 
         # Try Except block is for detecting corrupted message delimiter('|')
         try:
+            # Split message, get checksum, ack sequence number and data
             checksum = message.split('|')[-1]
             data = "|".join(message.split('|')[:-1]) + "|"
             ack_seq = data.split('|')[0]
             content = "|".join(data.split('|')[1:-1])
-
-            #print "Received:", ack_seq
         except ValueError:
             print "Corrupted ACK Message"
-            # TODO send NACK in case of receiving corrupted message
             continue
 
         # Receiving message with expected sequence number equal to sequence number
         if calculate_checksum(data) == int(checksum) and str(exp_seq) == ack_seq:
             f.write(content)
-            
+
+            # Prepare ACK message -> ack_seq|checksum
             ack_msg = ack_seq + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
 
-            if route == 0:
-                send_sock.sendto(msg_send, BROKER_1)
-            else:
-                send_sock.sendto(msg_send, BROKER_2)
-            route = 1 - route
+            # Send ACK messages to Broker's addresses
+            send_sock.sendto(msg_send, BROKER_1)
+            send_sock.sendto(msg_send, BROKER_2)
             exp_seq += 1
-
-            #print "ACK:", ack_seq
         # Receiving message with expected sequence number greater than sequence number
         # That means BROKER didn't received my previous ACK message
         else:
             ack_msg = str(exp_seq-1) + "|"
             msg_send = ack_msg + str(calculate_checksum(ack_msg))
-
-            #if route == 0:
+            
+            # Send ACK messages to Broker's addresses
             send_sock.sendto(msg_send, BROKER_1)
-            #else:
             send_sock.sendto(msg_send, BROKER_2)
-            #route = 1 - route
-
-            #print "rACK:", exp_seq-1, "(" + ack_seq + ")"
-
 except timeout:
+    # After timeout expires, close the server
     f.close()
     sys.stderr.write("%s is closed after waiting %d seconds.\n" % (sys.argv[0], dest_timeout))
     sys.exit()
