@@ -1,0 +1,5 @@
+325.100170 seconds
+355.144374 seconds
+329.343160 seconds
+322.495037 seconds
+314.611950 seconds
